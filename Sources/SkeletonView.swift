@@ -163,6 +163,7 @@ extension UIView {
         layer.insertSublayer(skeletonLayer.contentLayer, at: UInt32.max)
         if animated { skeletonLayer.start(animation) }
         status = .on
+        currentSkeletonConfig = SkeletonConfig(type: type, colors: colors, gradientDirection: direction, animated: animated, animation: animation)
     }
     
     func updateSkeletonLayer(usingColors colors: [UIColor], gradientDirection direction: GradientDirection? = nil, animated: Bool, animation: SkeletonLayerAnimation? = nil) {
@@ -180,6 +181,7 @@ extension UIView {
         skeletonLayer.removeLayer()
         self.skeletonLayer = nil
         status = .off
+        currentSkeletonConfig = nil
     }
 }
 
