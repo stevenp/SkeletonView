@@ -19,6 +19,22 @@ public extension UIView {
     func showAnimatedGradientSkeleton(usingGradient gradient: SkeletonGradient = SkeletonAppearance.default.gradient, animation: SkeletonLayerAnimation? = nil) {
         showSkeleton(withType: .gradient, usingColors: gradient.colors, animated: true, animation: animation)
     }
+
+    func showOrUpdateSkeleton(usingColor color: UIColor = SkeletonAppearance.default.tintColor) {
+        showOrUpdateSkeleton(withType: .solid, usingColors: [color])
+    }
+
+    func showOrUpdateGradientSkeleton(usingGradient gradient: SkeletonGradient = SkeletonAppearance.default.gradient) {
+        showOrUpdateSkeleton(withType: .gradient, usingColors: gradient.colors)
+    }
+
+    func showOrUpdateAnimatedSkeleton(usingColor color: UIColor = SkeletonAppearance.default.tintColor, animation: SkeletonLayerAnimation? = nil) {
+        showOrUpdateSkeleton(withType: .solid, usingColors: [color], animated: true, animation: animation)
+    }
+
+    func showOrUpdateAnimatedGradientSkeleton(usingGradient gradient: SkeletonGradient = SkeletonAppearance.default.gradient, animation: SkeletonLayerAnimation? = nil) {
+        showOrUpdateSkeleton(withType: .gradient, usingColors: gradient.colors, animated: true, animation: animation)
+    }
     
     func hideSkeleton(reloadDataAfter reload: Bool = true) {
         flowDelegate?.willBeginHidingSkeletons(withRootView: self)
@@ -48,17 +64,24 @@ extension UIView {
         flowDelegate?.willBeginShowingSkeletons(withRootView: self)
         recursiveShowSkeleton(withType: type, usingColors: colors, animated: animated, animation: animation, root: self)
     }
-    
-    fileprivate func recursiveShowSkeleton(withType type: SkeletonType, usingColors colors: [UIColor], animated: Bool, animation: SkeletonLayerAnimation?, root: UIView? = nil) {
-        addDummyDataSourceIfNeeded()
 
-        subviewsSkeletonables.recursiveSearch(leafBlock: {
-            guard !isSkeletonActive else { return }
-            isUserInteractionEnabled = false
-            saveViewState()
-            (self as? PrepareForSkeleton)?.prepareViewForSkeleton()
-            addSkeletonLayer(withType: type, usingColors: colors, animated: animated, animation: animation)
-        }) { subview in
+    func showOrUpdateSkeleton(withType type: SkeletonType = .solid, usingColors colors: [UIColor], animated: Bool = false, animation: SkeletonLayerAnimation? = nil) {
+        skeletonIsAnimated = animated
+        if flowDelegate == nil {
+            flowDelegate = SkeletonFlowHandler()
+            flowDelegate?.willBeginShowingSkeletons(withRootView: self)
+        }
+        flowDelegate?.willBeginUpdatingSkeletons(withRootView: self)
+        recursiveShowOrUpdateSkeleton(withType: type, usingColors: colors, animated: animated, animation: animation)
+    }
+
+    fileprivate func recursiveShowSkeleton(withType type: SkeletonType, usingColors colors: [UIColor], animated: Bool, animation: SkeletonLayerAnimation?, root: UIView? = nil) {
+        layoutIfNeeded()
+
+        addDummyDataSourceIfNeeded()
+        subviewsSkeletonables.recursiveSearch(
+            leafBlock: showSkeletonLeafBlock(withType: type, usingColors:colors, animated: animated, animation: animation)
+        ){ subview in
             subview.recursiveShowSkeleton(withType: type, usingColors: colors, animated: animated, animation: animation)
         }
 
@@ -66,6 +89,36 @@ extension UIView {
             flowDelegate?.didShowSkeletons(withRootView: root)
         }
     }
+    
+    fileprivate func recursiveShowOrUpdateSkeleton(withType type: SkeletonType, usingColors colors: [UIColor], animated: Bool, animation: SkeletonLayerAnimation?) {
+        layoutIfNeeded()
+
+        updateDummyDataSourceIfNeeded()
+        subviewsSkeletonables.recursiveSearch(leafBlock: {
+            if skeletonLayer?.type != type {
+                hideSkeleton()
+            }
+
+            if isSkeletonActive {
+                updateSkeletonLayer(usingColors: colors, animated: animated, animation: animation)
+            } else {
+                showSkeletonLeafBlock(withType: type, usingColors:colors, animated: animated, animation: animation)()
+            }
+        }) { subview in
+            subview.recursiveShowOrUpdateSkeleton(withType: type, usingColors: colors, animated: animated, animation: animation)
+        }
+    }
+
+    fileprivate func showSkeletonLeafBlock(withType type: SkeletonType, usingColors colors: [UIColor], animated: Bool, animation: SkeletonLayerAnimation?) -> VoidBlock {
+        return {
+            guard !self.isSkeletonActive else { return }
+            self.isUserInteractionEnabled = false
+            self.saveViewState()
+            (self as? PrepareForSkeleton)?.prepareViewForSkeleton()
+            self.addSkeletonLayer(withType: type, usingColors: colors, animated: animated, animation: animation)
+        }
+    }
+    
     
     fileprivate func recursiveHideSkeleton(reloadDataAfter reload: Bool, root: UIView? = nil) {
         removeDummyDataSourceIfNeeded()
@@ -112,12 +165,20 @@ extension UIView {
         status = .on
     }
     
+    func updateSkeletonLayer(usingColors colors: [UIColor], gradientDirection direction: GradientDirection? = nil, animated: Bool, animation: SkeletonLayerAnimation? = nil) {
+        guard let skeletonLayer = skeletonLayer else { return }
+        skeletonLayer.update(usingColors: colors)
+        if animated { skeletonLayer.start(animation) }
+        else { skeletonLayer.stopAnimation() }
+        status = .on
+    }
+    
     func removeSkeletonLayer() {
         guard isSkeletonActive,
-            let layer = skeletonLayer else { return }
-        layer.stopAnimation()
-        layer.removeLayer()
-        skeletonLayer = nil
+            let skeletonLayer = skeletonLayer else { return }
+        skeletonLayer.stopAnimation()
+        skeletonLayer.removeLayer()
+        self.skeletonLayer = nil
         status = .off
     }
 }

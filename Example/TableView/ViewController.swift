@@ -43,6 +43,11 @@ class ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         tableview.isSkeletonable = true
+        view.showAnimatedSkeleton()
+    }
+
+    override func viewDidLayoutSubviews() {
+        refreshSkeleton()
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -67,25 +72,24 @@ class ViewController: UIViewController {
     }
     
     func refreshSkeleton() {
-        self.view.hideSkeleton()
-        if type == .gradient { showGradientSkeleton() }
-        else { showSolidSkeleton() }
+        if type == .gradient { showOrUpdateGradientSkeleton() }
+        else { showOrUpdatepdateSolidSkeleton() }
     }
     
-    func showSolidSkeleton() {
+    func showOrUpdatepdateSolidSkeleton() {
         if switchAnimated.isOn {
-            view.showAnimatedSkeleton(usingColor: colorSelectedView.backgroundColor!)
+            view.showOrUpdateAnimatedSkeleton(usingColor: colorSelectedView.backgroundColor!)
         } else {
-            view.showSkeleton(usingColor: colorSelectedView.backgroundColor!)
+            view.showOrUpdateSkeleton(usingColor: colorSelectedView.backgroundColor!)
         }
     }
     
-    func showGradientSkeleton() {
+    func showOrUpdateGradientSkeleton() {
         let gradient = SkeletonGradient(baseColor: colorSelectedView.backgroundColor!)
         if switchAnimated.isOn {
-            view.showAnimatedGradientSkeleton(usingGradient: gradient)
+            view.showOrUpdateAnimatedGradientSkeleton(usingGradient: gradient)
         } else {
-            view.showGradientSkeleton(usingGradient: gradient)
+            view.showOrUpdateGradientSkeleton(usingGradient: gradient)
         }
     }
     
