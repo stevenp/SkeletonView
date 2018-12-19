@@ -130,6 +130,7 @@ extension UIView {
         }) { subview in
             subview.recursiveHideSkeleton(reloadDataAfter: reload)
         }
+
         if let root = root {
             flowDelegate?.didHideSkeletons(withRootView: root)
         }
